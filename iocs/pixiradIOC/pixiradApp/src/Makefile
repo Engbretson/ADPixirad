@@ -15,6 +15,7 @@ PROD_SRCS += $(PROD_NAME)_registerRecordDeviceDriver.cpp $(PROD_NAME)Main.cpp
 
 # Add locally compiled object code
 PROD_LIBS += pixirad
+PROD_LIBS += MaddenPlugins
 
 include $(ADCORE)/ADApp/commonDriverMakefile
 $(PROD_NAME)_DBD += drvAsynIPPort.dbd

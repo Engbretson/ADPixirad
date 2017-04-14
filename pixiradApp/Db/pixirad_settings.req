@@ -10,3 +10,9 @@ $(P)$(R)SyncInPolarity
 $(P)$(R)SyncOutPolarity
 $(P)$(R)SyncOutFunction
 $(P)$(R)CoolingState
+#$(P)$(R)Cycles
+#$(P)$(R)Exp1dt
+#$(P)$(R)Exp2dt
+#$(P)$(R)Sepdt
+#$(P)$(R)TriggerDelayns
+

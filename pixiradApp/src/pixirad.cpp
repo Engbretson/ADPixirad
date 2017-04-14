@@ -53,8 +53,10 @@
 
 #define MAX_UDP_DATA_BUFFER         256217728
 #define MAX_UDP_PACKET_LEN          1448
+#define DEFAULT_UDP_NUM_PACKETS     360
 #define DAQ_PACKET_FRAGMENT         45
 #define AUTOCAL_DATA                0x40
+#define AUTOCAL_NUM_PACKETS         135
 #define PACKET_ID_OFFSET            2
 #define PACKET_ID_BYTES             2
 #define PACKET_CRC_BYTES            4
@@ -149,9 +151,10 @@ typedef enum {
     FTTwoColors,
     FTFourColors,
     FTOneColorDTF,
-    FTTwoColorsDTF
+    FTTwoColorsDTF,
+    FTFTE
 } PixiradFrameType_t;
-static const char *PixiradFrameTypeStrings[] = {"1COL0", "1COL1", "2COL", "4COL", "DTF", "2COLDTF"};
+static const char *PixiradFrameTypeStrings[] = {"1COL0", "1COL1", "2COL", "4COL", "DTF", "2COLDTF","FTE"};
 
 static const char *driverName = "pixirad";
 
@@ -193,6 +196,11 @@ static double thresholdFractions[] = {
 #define PixiradPeltierPowerString    "PELTIER_POWER"
 #define PixiradCoolingStatusString   "COOLING_STATUS"
 #define PixiradAutoCalibrateString   "AUTO_CALIBRATE"
+#define PixiradCyclesString          "CYCLES"
+#define PixiradExp1dtString          "EXP1DT"
+#define PixiradExp2dtString          "EXP2DT"
+#define PixiradSepdtString           "SEPDT"
+#define PixiradTriggerDelaynsString  "TRIGGER_Delay_ns"
 
 /** Driver for PiXirad pixel array detectors using their server server over TCP/IP socket */
 class pixirad : public ADDriver {
@@ -244,7 +252,13 @@ protected:
     int PixiradDewPoint;
     int PixiradCoolingStatus;
     int PixiradPeltierPower;
-    #define LAST_PIXIRAD_PARAM PixiradPeltierPower
+    int PixiradCycles;
+    int PixiradExp1dt;
+    int PixiradExp2dt;
+    int PixiradSepdt;
+    int PixiradTriggerDelayns;
+
+    #define LAST_PIXIRAD_PARAM  PixiradTriggerDelayns
 
 private:                                       
     /* These are the methods that are new to this class */
@@ -256,6 +270,7 @@ private:
     asynStatus setSync();
     asynStatus startAcquire();
     asynStatus stopAcquire();
+    asynStatus setSepdt();
    
     /* Our data */
     epicsMessageQueueId dataMessageQueueId_;
@@ -266,8 +281,6 @@ private:
     char fromServer_[MAX_MESSAGE_SIZE];
     asynUser *pasynUserCommand_;
     asynUser *pasynUserCommandCommon_;
-    int numUDPPackets_;
-    int numAutocalUDPPackets_;
 };
 
 #define NUM_PIXIRAD_PARAMS ((int)(&LAST_PIXIRAD_PARAM - &FIRST_PIXIRAD_PARAM + 1))
@@ -490,6 +503,11 @@ pixirad::pixirad(const char *portName, const char *commandPortName,
     createParam(PixiradDewPointString,        asynParamFloat64, &PixiradDewPoint);
     createParam(PixiradCoolingStatusString,   asynParamInt32,   &PixiradCoolingStatus);
     createParam(PixiradPeltierPowerString,    asynParamFloat64, &PixiradPeltierPower);
+    createParam(PixiradCyclesString,          asynParamInt32,   &PixiradCycles);
+    createParam(PixiradExp1dtString,          asynParamFloat64, &PixiradExp1dt);
+    createParam(PixiradExp2dtString,          asynParamFloat64, &PixiradExp2dt);
+    createParam(PixiradSepdtString,           asynParamFloat64, &PixiradSepdt);
+    createParam(PixiradTriggerDelaynsString,  asynParamFloat64, &PixiradTriggerDelayns);
 
     /* Set some default values for parameters */
     status =  setStringParam (ADManufacturer, "Pixirad");
@@ -527,6 +545,11 @@ pixirad::pixirad(const char *portName, const char *commandPortName,
     status |= setIntegerParam(PixiradSyncOutFunction, SyncOutShutter);
     status |= setIntegerParam(PixiradSystemReset, 0);
     status |= setIntegerParam(PixiradCoolingStatus, 0);
+    // status |= setIntegerParam(PixiradCycles,1);
+    // status |= setDoubleParam(PixiradExp1dt,0.0);
+    // status |= setDoubleParam(PixiradExp2dt,0.0);
+    // status |= setDoubleParam(PixiradSepdt,0.0);
+    // status |= setDoubleParam(PixiradTriggerDelayns,0.0);
     
     // There is a bug in the current firmware.  
     // Two different HV values must be sent or it won't accept it.
@@ -535,51 +558,6 @@ pixirad::pixirad(const char *portName, const char *commandPortName,
     setDoubleParam(PixiradHVValue, INITIAL_HV_VALUE);
     setCoolingAndHV();
     
-    // Set the NumUDPPackets and NumAutocalUDPPackets based on detector size
-    switch (maxSizeX) {
-        case 476:
-            switch (maxSizeY) {
-                case 512:
-                    numUDPPackets_ = 360;
-                    numAutocalUDPPackets_ = 135;
-                    break;
-                case 1024:
-                    numUDPPackets_ = 720;
-                    numAutocalUDPPackets_ = 135;
-                    break;
-                case 4096:
-                    numUDPPackets_ = 2539;
-                    numAutocalUDPPackets_ = 135;
-                    break;
-                default:
-                    printf("%s::%s Illegal maxSizeY=%d\n", 
-                        driverName, functionName, maxSizeY);
-                    break;
-            }
-        case 402:
-            switch (maxSizeY) {
-                case 512:
-                    numUDPPackets_ = 270;
-                    numAutocalUDPPackets_ = 180;
-                    break;
-                case 1024:
-                    numUDPPackets_ = 540;
-                    numAutocalUDPPackets_ = 360;
-                    break;
-                case 4096:
-                    numUDPPackets_ = 2539;
-                    numAutocalUDPPackets_ = 135;
-                    break;
-                default:
-                    printf("%s::%s Illegal maxSizeY=%d\n", 
-                        driverName, functionName, maxSizeY);
-                    break;
-            }
-        default:
-            printf("%s::%s Illegal maxSizeX=%d\n", 
-                    driverName, functionName, maxSizeX);
-    }        
- 
     if (status) {
         printf("%s:%s: unable to set camera parameters\n", driverName, functionName);
         return;
@@ -668,21 +646,70 @@ asynStatus pixirad::setSync()
     int syncInPolarity;
     int syncOutPolarity;
     int syncOutFunction;
+    double triggerDelayns;
+
     asynStatus status;
     
     getIntegerParam(PixiradSyncInPolarity, &syncInPolarity);
     getIntegerParam(PixiradSyncOutPolarity, &syncOutPolarity);
     getIntegerParam(PixiradSyncOutFunction, &syncOutFunction);
+    getDoubleParam(PixiradTriggerDelayns,   &triggerDelayns);  
+
+// TODO something determines if we call this code with 2 paramters or 3, none zero triggerdelayns ??
     
+     
+    if (triggerDelayns != 0.0) {   
+    epicsSnprintf(toServer_, sizeof(toServer_), 
+                  "DAQ:! SET_SYNC %s %s %s %.5f", 
+                  PixiradSyncPolarityStrings[syncInPolarity],
+                  PixiradSyncPolarityStrings[syncOutPolarity],
+                  PixiradSyncOutFunctionStrings[syncOutFunction],
+                  triggerDelayns);
+		  //    printf("In New Way\n");
+                  }
+    else {
     epicsSnprintf(toServer_, sizeof(toServer_), 
                   "DAQ:! SET_SYNC %s %s %s", 
                   PixiradSyncPolarityStrings[syncInPolarity],
                   PixiradSyncPolarityStrings[syncOutPolarity],
                   PixiradSyncOutFunctionStrings[syncOutFunction]);
+		  //    printf("In Old Way\n");
+                  }
+
+
+/*
+    epicsSnprintf(toServer_, sizeof(toServer_), 
+                  "DAQ:! SET_SYNC %s %s %s", 
+                  PixiradSyncPolarityStrings[syncInPolarity],
+                  PixiradSyncPolarityStrings[syncOutPolarity],
+                  PixiradSyncOutFunctionStrings[syncOutFunction]);
+*/
     status = writeReadServer();
     return status;
 }
+asynStatus pixirad::setSepdt()
+{
+    int cycles;
+    double exp1dt;
+    double exp2dt;
+    double sepdt;
+    asynStatus status;
+
+    getIntegerParam(PixiradCycles, &cycles);
+    getDoubleParam(PixiradExp1dt,  &exp1dt);
+    getDoubleParam(PixiradExp2dt,  &exp2dt);
+    getDoubleParam(PixiradSepdt,   &sepdt);
     
+    epicsSnprintf(toServer_, sizeof(toServer_), 
+                  "DAQ:! SET_FTE_CONF %d %.1f %.1f %.1f", 
+                  cycles,
+                  exp1dt,
+                  exp2dt,
+                  sepdt);
+    status = writeReadServer();
+    //    printf("In Set New Params %d\n", status);
+    return status;
+}    
 asynStatus pixirad::setThresholds(int ref)
 {
     double thresholdEnergy[4];
@@ -1016,7 +1043,7 @@ void pixirad::udpDataListenerTask()
     unsigned int id_error_packets=0;
     static const char *functionName = "udpDataListenerTask";
     unsigned char *process_buf;
-    unsigned char *buf = (unsigned char*) calloc(MAX_UDP_PACKET_LEN * numUDPPackets_, sizeof(unsigned short));
+    unsigned char *buf = (unsigned char*) calloc(MAX_UDP_PACKET_LEN * DEFAULT_UDP_NUM_PACKETS, sizeof(unsigned short));
 
     if ((data_udp_sock_fd = epicsSocketCreate(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
         asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
@@ -1072,7 +1099,7 @@ void pixirad::udpDataListenerTask()
     
     while (1) {
         this_frame_has_aligment_errors=0;
-        temp_NPACK = numUDPPackets_;
+        temp_NPACK = DEFAULT_UDP_NUM_PACKETS;
         i=0;
         while(i < temp_NPACK ) {
             j = 0;
@@ -1090,9 +1117,9 @@ void pixirad::udpDataListenerTask()
                     received_packets++;
                     packet_tag = *buf;
                     if (packet_tag & AUTOCAL_DATA)
-                        temp_NPACK = numAutocalUDPPackets_;
+                        temp_NPACK = AUTOCAL_NUM_PACKETS;
                     else
-                        temp_NPACK = numUDPPackets_;
+                        temp_NPACK = DEFAULT_UDP_NUM_PACKETS;
 
                     packet_id = buf[MAX_UDP_PACKET_LEN*(i)+PACKET_ID_OFFSET]<<8;
                     packet_id += buf[MAX_UDP_PACKET_LEN*(i)+1+PACKET_ID_OFFSET];
@@ -1126,7 +1153,7 @@ void pixirad::udpDataListenerTask()
 
         i=0;
         local_packet_id=0;
-        process_buf = (unsigned char *) calloc((MAX_UDP_PACKET_LEN - PACKET_EXTRA_BYTES + PACKET_TAG_BYTES) * numUDPPackets_, 
+        process_buf = (unsigned char *) calloc((MAX_UDP_PACKET_LEN - PACKET_EXTRA_BYTES + PACKET_TAG_BYTES) * DEFAULT_UDP_NUM_PACKETS, 
                                               sizeof(unsigned short));
         if (process_buf == NULL) {
             asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
@@ -1204,6 +1231,7 @@ void pixirad::statusTask()
           driverName, functionName, strerror(SOCKERRNO));
       return;
   }
+
   serverAddr.sin_family = AF_INET;
   serverAddr.sin_addr.s_addr = INADDR_ANY;
   serverAddr.sin_port = htons(statusPortNumber_);
@@ -1316,6 +1344,9 @@ asynStatus pixirad::writeInt32(asynUser *pasynUser, epicsInt32 value)
                (function == PixiradSyncOutFunction)) {
         status = setSync();
 
+    } else if (function == PixiradCycles) {
+        status = setSepdt();
+
     } else if (function == ADFrameType) {
         status = setThresholds(1);
         
@@ -1373,6 +1404,11 @@ asynStatus pixirad::writeFloat64(asynUser *pasynUser, epicsFloat64 value)
                (function == PixiradThresh3) ||
                (function == PixiradThresh4)) {
         status = setThresholds(1);
+
+    } else if ((function == PixiradExp1dt) ||
+               (function == PixiradExp2dt) ||
+               (function == PixiradSepdt)) {
+        status = setSepdt();
 
     } else {
         /* If this parameter belongs to a base class call its method */

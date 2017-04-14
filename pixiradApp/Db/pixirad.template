@@ -39,6 +39,8 @@ record(mbbo,"$(P)$(R)FrameType") {
     field(FRST, "1 color DTF")
     field(FVVL, "5")
     field(FVST, "2 color DTF")
+    field(SXVL, "6")
+    field(SXST, "FTE")
 }
 
 record(mbbi,"$(P)$(R)FrameType_RBV") {
@@ -54,6 +56,8 @@ record(mbbi,"$(P)$(R)FrameType_RBV") {
     field(FRST, "1 color DTF")
     field(FVVL, "5")
     field(FVST, "2 color DTF")
+    field(SXVL, "6")
+    field(SXST, "FTE")
 }
 
 # Set the precision of the temperature records to 1
@@ -486,7 +490,110 @@ record(mbbi,"$(P)$(R)CoolingStatus_RBV") {
     field(SXSV, "MAJOR")
     field(SCAN, "I/O Intr")
 }
+record(ao, "$(P)$(R)Exp1dt")
+{
+    field(PINI, "YES")
+    field(DTYP, "asynFloat64")
+    field(OUT,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))Exp1dt")
+    field(DESC, "Exposure 1 Delta Time")
+    field(EGU,  "Sec")
+    field(PREC, "5")
 
+}
+
+record(ai, "$(P)$(R)Exp1dt_RBV")
+{
+    field(DTYP, "asynFloat64")
+    field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))Exp1dt")
+    field(DESC, "Exposure 1 delta Time")
+    field(EGU,  "Sec")
+    field(PREC, "5")
+    field(SCAN, "I/O Intr")
+}
+
+record(ao, "$(P)$(R)Exp2dt")
+{
+    field(PINI, "YES")
+    field(DTYP, "asynFloat64")
+    field(OUT,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))Exp2dt")
+    field(DESC, "Exposure 2 Delta Time")
+    field(EGU,  "Sec")
+    field(PREC, "5")
+
+}
+
+record(ai, "$(P)$(R)Exp2dt_RBV")
+{
+    field(DTYP, "asynFloat64")
+    field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))Exp2dt")
+    field(DESC, "Exposure 2 delta Time")
+    field(EGU,  "Sec")
+    field(PREC, "5")
+    field(SCAN, "I/O Intr")
+}
+
+record(ao, "$(P)$(R)Sepdt")
+{
+    field(PINI, "YES")
+    field(DTYP, "asynFloat64")
+    field(OUT,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))Sepdt")
+    field(DESC, "Sep Delta Time")
+    field(EGU,  "Sec")
+    field(PREC, "5")
+
+}
+
+record(ai, "$(P)$(R)Sepdt_RBV")
+{
+    field(DTYP, "asynFloat64")
+    field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))Sepdt")
+    field(DESC, "Sep delta Time")
+    field(EGU,  "Sec")
+    field(PREC, "5")
+    field(SCAN, "I/O Intr")
+}
+
+record(ao, "$(P)$(R)TriggerDelayns")
+{
+    field(PINI, "YES")
+    field(DTYP, "asynFloat64")
+    field(OUT,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))TRIGGER_Delay_ns")
+    field(DESC, "Trigger Delay")
+    field(EGU,  "Sec")
+    field(PREC, "5")
+
+}
+
+record(ai, "$(P)$(R)TriggerDelayns_RBV")
+{
+    field(DTYP, "asynFloat64")
+    field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))TRIGGER_Delay_ns")
+    field(DESC, "Trigger Delay")
+    field(EGU,  "Sec")
+    field(PREC, "5")
+    field(SCAN, "I/O Intr")
+}
+
+record(ao, "$(P)$(R)Cycles")
+{
+    field(PINI, "YES")
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))Cycles")
+    field(DESC, "Cycles to Acquire")
+    field(EGU,  "Cycles")
+    field(PREC, "1")
+
+}
+
+record(ai, "$(P)$(R)Cycles_RBV")
+{
+    field(DTYP, "asynInt32")
+    field(INP,  "@asyn($(PORT),$(ADDR),$(TIMEOUT))Cycles")
+    field(DESC, "Cycles to Acquire")
+    field(EGU,  "Cycles")
+    field(PREC, "1")
+    field(SCAN, "I/O Intr")
+}
 
 # Set DISA for PVs in ADBase that do not apply to Pixirad
 

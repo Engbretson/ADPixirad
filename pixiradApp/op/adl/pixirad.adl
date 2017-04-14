@@ -1,6 +1,6 @@
 
 file {
-	name="/home/epics/devel-AD2.0/areaDetector-2-0/ADPixirad/pixiradApp/op/adl/pixirad.adl"
+	name="/xorApps/epics/synApps_5_8/ioc/8idPixiradF/pixiradApp/op/adl/pixirad.adl"
 	version=030107
 }
 display {
@@ -2169,4 +2169,20 @@ composite {
 			}
 		}
 	}
+}
+"related display" {
+	object {
+		x=774
+		y=570
+		width=231
+		height=24
+	}
+	display[0] {
+		label="New Firmware Display"
+		name="newFirmware.adl"
+		args="P=$(P),R=$(R)"
+	}
+	clr=14
+	bclr=4
+	label="New Firmware Options"
 }

@@ -1,3 +1,10 @@
-medm -x -macro "P=13PR1:, R=cam1:" pixirad.adl &
-../../bin/linux-x86_64-gcc45/pixiradApp st.cmd
+EPICS_AUTO_ADDR_LIST=NO
+export EPICS_AUTO_ADDR_LIST
+EPICS_CA_ADDR_LIST=192.168.0.1
+export EPICS_CA_ADDR_LIST
+EPICS_DISPLAY_PATH='/net/s8iddserv/xorApps/epics/synApps_5_8/ioc/8idPixiradF/pixiradApp/op/adl:/xorApps/epics/synApps_5_8/ioc/ADIMMPlugin/immApp/op:/APSshare/epics/synApps_5_8/support/areaDetector-2-4/ADCore/ADApp/op/adl:/APSshare/epics/synApps_5_8/support/all_adl'
+export EPICS_DISPLAY_PATH
+
+medm -x -macro "P=8idPR1:, R=cam1:"  /pixirad.adl &
+../../bin/linux-x86_64/pixiradApp st.cmd
 

@@ -1,18 +1,24 @@
 < envPaths
+
+epicsEnvSet("ENGINEER", "Engbretson")
+epicsEnvSet("LOCATION", "Sector 8ID")
+epicsEnvSet("GROUP", "XSD-CMS")
+epicsEnvSet("IOC","ioc8iPixirad")
+epicsEnvSet("ADIMMPlugin","/net/s8iddserv/xorApps/epics/synApps_5_8/ioc/ADIMMPlugin")
+
 errlogInit(20000)
 
 dbLoadDatabase("$(TOP)/dbd/pixiradApp.dbd")
 pixiradApp_registerRecordDeviceDriver(pdbbase) 
 
 # Prefix for all records
-epicsEnvSet("PREFIX", "13PR1:")
+epicsEnvSet("PREFIX", "8idPR1:")
 # The drvAsynIPPort port name
 epicsEnvSet("COMMAND_PORT", "PIXI_CMD")
 # The UDP socket for status
 epicsEnvSet("STATUS_PORT", "2224")
-# The UDP socket for data.  Pixitrad-1 uses 2223, Pixirad-2 uses 9999
-#epicsEnvSet("DATA_PORT", "2223")
-epicsEnvSet("DATA_PORT", "9999")
+# The UDP socket for data
+epicsEnvSet("DATA_PORT", "2223")
 # Number of data port buffers
 epicsEnvSet("DATA_PORT_BUFFERS", "1500")
 # The port name for the detector
@@ -20,11 +26,9 @@ epicsEnvSet("PORT",   "PIXI")
 # The queue size for all plugins
 epicsEnvSet("QSIZE",  "20")
 # The maximim image width; used for row profiles in the NDPluginStats plugin
-#epicsEnvSet("XSIZE",  "476")
-epicsEnvSet("XSIZE",  "402")
+epicsEnvSet("XSIZE",  "476")
 # The maximim image height; used for column profiles in the NDPluginStats plugin
-epicsEnvSet("YSIZE",  "1024")
-#epicsEnvSet("YSIZE",  "512")
+epicsEnvSet("YSIZE",  "512")
 # The maximum number of time seried points in the NDPluginStats plugin
 epicsEnvSet("NCHANS", "2048")
 # The maximum number of frames buffered in the NDPluginCircularBuff plugin
@@ -48,13 +52,24 @@ dbLoadRecords("$(ADPIXIRAD)/db/pixirad.template","P=$(PREFIX),R=cam1:,PORT=$(POR
 
 # Create a standard arrays plugin
 NDStdArraysConfigure("Image1", 5, 0, "$(PORT)", 0, 0)
-dbLoadRecords("$(ADCORE)/db/NDStdArrays.template","P=$(PREFIX),R=image1:,PORT=Image1,ADDR=0,TIMEOUT=1,NDARRAY_PORT=$(PORT),TYPE=Int16,FTVL=SHORT,NELEMENTS=487424")
+
+dbLoadRecords("$(ADCORE)/db/NDStdArrays.template", "P=$(PREFIX),R=image1:,PORT=Image1,ADDR=0,TIMEOUT=1,NDARRAY_PORT=$(PORT),TYPE=Int16,FTVL=SHORT,NELEMENTS=243712")
 
 # Load all other plugins using commonPlugins.cmd
 < $(ADCORE)/iocBoot/commonPlugins.cmd
 set_requestfile_path("$(ADPIXIRAD)/pixiradApp/Db")
 
+# IMM plugin support
+set_requestfile_path("$(ADIMMPlugin)/immApp/Db")
+drvNDFileIMMConfigure("IMM", 100, 0,"$(PORT)",0,50,30000000);
 
+dbLoadRecords("$(ADCORE)/db/NDPluginBase.template","P=$(PREFIX),R=IMM:,PORT=IMM,ADDR=0,TIMEOUT=1,NDARRAY_PORT=$(PORT),NDARRAY_ADDR=0")
+
+dbLoadRecords("$(ADIMMPlugin)/immApp/Db/NDFileIMM.template", "P=$(PREFIX),R=IMM:,PORT=IMM,ADDR=0,NDARRAY_PORT=$(PORT),TIMEOUT=1")
+
+
+# Optional: load alive record (requires ALIVE module)
+dbLoadRecords("$(ALIVE)/aliveApp/Db/alive.db", "P=$(PREFIX),RHOST=164.54.100.11")
 
 iocInit()
 
